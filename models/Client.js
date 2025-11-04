@@ -1,0 +1,26 @@
+const mongoose = require('mongoose');
+
+const clientSchema = new mongoose.Schema({
+    clientName: { type: String, required: true },
+    phoneNumber: { type: String, required: true },
+    email: {
+        type: String,
+        match: [/.+@.+\..+/, "தகுந்த மின்னஞ்சல் முகவரியை உள்ளிடவும்."],
+    },
+    photo: { type: String },
+    address: { type: String },
+    description: { type: String },
+    projectId: { 
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Project',
+        required: true
+    },
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+    },
+    createdAt: { type: Date, default: Date.now }
+});
+
+module.exports = mongoose.model('Client', clientSchema);
