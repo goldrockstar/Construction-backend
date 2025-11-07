@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 
 // ... (quotationFromSchema, quotationToSchema, materialSubSchema - Remain unchanged)
 const quotationFromSchema = new mongoose.Schema({
-    profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'Profile' },
+    profileId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     companyName: { type: String, required: true },
     gst: { type: String },
     address: { type: String },
@@ -61,6 +61,9 @@ const quotationSchema = new mongoose.Schema({
     },
     dueDate: {
         type: Date
+    },
+    logo: {
+        type : String
     },
     materials: [materialSubSchema],
     expenditures: [expenditureSubSchema], // This array contains both Salary (Manpower) and Other

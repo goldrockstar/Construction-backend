@@ -5,7 +5,14 @@ const asyncHandler = require('express-async-handler'); // asyncHandler-ஐ இ�
 // @desc    Get all material mappings
 // @access  Private
 const getMaterialMappings = asyncHandler(async (req, res) => {
-    const materialMappings = await MaterialMapping.find()
+     const { projectId } = req.query;
+
+    let filter = {};
+
+    if (projectId) {
+        filter.projectId = projectId;
+    }
+    const materialMappings = await MaterialMapping.find(filter)
         .populate('projectId', 'projectName')
         .sort({ createdAt: -1 });
     res.json(materialMappings);

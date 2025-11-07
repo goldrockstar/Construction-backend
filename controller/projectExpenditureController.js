@@ -7,7 +7,15 @@ const Manpower = require('../models/Manpower');
 // @access Public
 exports.getAllProjectExpenditures = async (req, res) => {
     try {
-        const projectExpenditures = await ProjectExpenditure.find()
+        const { projectId } = req.query;
+
+        let filter = {};
+
+        if (projectId) {
+            filter.projectId = projectId;
+        }
+
+        const projectExpenditures = await ProjectExpenditure.find(filter)
             .populate('projectId', 'projectName')
             .populate('manpowerId', 'name')
             .sort({ createdAt: -1 });
@@ -142,6 +150,7 @@ exports.updateProjectExpenditure = async (req, res) => {
 // @access Public
 exports.deleteProjectExpenditure = async (req, res) => {
     try {
+        console.log("Attempting to delete ID:", req.params.id);
         const projectExpenditure = await ProjectExpenditure.findById(req.params.id);
 
         if (!projectExpenditure) {
