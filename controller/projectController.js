@@ -46,11 +46,15 @@ const getProjectById = asyncHandler(async (req, res) => {
 });
 
 const createProject = asyncHandler(async (req, res) => {
-    const { projectName, scope, startDate, endDate, date, gst, totalCost, description, status, clientId } = req.body;
-    if (!projectName || !totalCost) {
+    // Note: estimatedBudget is correctly destructured from req.body
+    const { projectId, projectName, projectType, clientName, startDate, expectedEndDate, actualEndDate, projectStatus, location, projectManager, teamMembers, estimatedBudget, clientId } = req.body;
+    
+    // 🛑 FIX IS HERE: Replaced 'totalCost' with 'estimatedBudget'
+    if (!projectName || estimatedBudget === undefined || estimatedBudget === null) {
         res.status(400);
-        throw new Error('Please add project name and total cost');
+        throw new Error('Please add project name and estimated budget');
     }
+    
     if (clientId) {
         const clientExists = await Client.findById(clientId);
         if (!clientExists) {
@@ -58,16 +62,20 @@ const createProject = asyncHandler(async (req, res) => {
             throw new Error('Invalid client ID provided');
         }
     }
+    
     const project = await Project.create({
+        projectId,
         projectName,
-        scope,
+        projectType,
+        clientName,
         startDate,
-        endDate,
-        date,
-        gst,
-        totalCost,
-        description,
-        status,
+        expectedEndDate,
+        actualEndDate,
+        projectStatus,
+        location,
+        projectManager,
+        teamMembers,
+        estimatedBudget, // This is the correct property name
         client: clientId || null,
         user: req.user.id
     });
@@ -75,7 +83,7 @@ const createProject = asyncHandler(async (req, res) => {
 });
 
 const updateProject = asyncHandler(async (req, res) => {
-    const { projectName, scope, startDate, endDate, date, gst, totalCost, description, status, clientId } = req.body;
+    const {  projectId, projectName, projectType, clientName,  startDate, expectedEndDate, actualEndDate, projectStatus, location, projectManager, teamMembers, estimatedBudget,  clientId } = req.body;
     let project = await Project.findById(req.params.id);
     if (!project) {
         res.status(404);
@@ -99,16 +107,19 @@ const updateProject = asyncHandler(async (req, res) => {
             throw new Error('Invalid client ID provided');
         }
     }
-
+    
+    project.projectId = projectId !== undefined ? projectId : project.projectId;
     project.projectName = projectName !== undefined ? projectName : project.projectName;
-    project.scope = scope !== undefined ? scope : project.scope;
+    project.projectType = projectType !== undefined ? projectType : project.projectType;
+    project.clientName = clientName !== undefined ? clientName : project.clientName;
     project.startDate = startDate !== undefined ? startDate : project.startDate;
-    project.endDate = endDate !== undefined ? endDate : project.endDate;
-    project.date = date !== undefined ? date : project.date;
-    project.gst = gst !== undefined ? gst : project.gst;
-    project.totalCost = totalCost !== undefined ? totalCost : project.totalCost;
-    project.description = description !== undefined ? description : project.description;
-    project.status = status !== undefined ? status : project.status;
+    project.expectedEndDate = expectedEndDate !== undefined ? expectedEndDate : project.expectedEndDate;
+    project.actualEndDate = actualEndDate !== undefined ? actualEndDate : project.actualEndDate;
+    project.projectStatus = projectStatus !== undefined ? projectStatus : project.projectStatus;
+    project.location = location !== undefined ? location : project.location;
+    project.projectManager = projectManager !== undefined ? projectManager : project.projectManager;
+    project.teamMembers = teamMembers !== undefined ? teamMembers : project.teamMembers;
+    project.estimatedBudget = estimatedBudget !== undefined ? estimatedBudget : project.estimatedBudget;
     project.client = clientId !== undefined ? clientId : project.client;
     const updatedProject = await project.save();
     res.status(200).json(updatedProject);

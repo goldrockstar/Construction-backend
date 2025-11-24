@@ -1,20 +1,21 @@
 // Import necessary modules and models
 const Quotation = require('../models/Quotation');
-const MaterialMapping = require('../models/MaterialMapping');
-const ExpenditureMapping = require('../models/ProjectExpenditure'); // Used for fetching actual expenses
-const Project = require('../models/Project');
+const Project = require('../models/Project'); // Assuming you have this model
 const Profile = require('../models/User') // Assuming 'Profile' model is alias for 'User' model
-const Client = require('../models/Client');
+const Client = require('../models/Client'); // Assuming you have this model
 
 const path = require('path');
 const fs = require('fs');
 
+// Ensure the uploads directory exists
 const uploadsDir = path.join(__dirname, '../uploads');
 if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
+    fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-// ... generateQuotationNumber function (Remains unchanged and correct)
+/**
+ * Function to generate a unique quotation number (e.g., Q2511-0001)
+ */
 const generateQuotationNumber = async () => {
     let quotationNumber;
     let isUnique = false;
@@ -23,6 +24,7 @@ const generateQuotationNumber = async () => {
 
     do {
         try {
+            // Get the total count of documents to generate the next sequence number
             const count = await Quotation.countDocuments();
             const date = new Date();
             const year = date.getFullYear().toString().slice(-2);
@@ -52,23 +54,15 @@ const generateQuotationNumber = async () => {
 };
 
 
-// ... getAllQuotations function (Remains unchanged and correct)
+/**
+ * GET: Retrieve all quotations
+ */
 exports.getAllQuotations = async (req, res) => {
     try {
         const quotations = await Quotation.find()
-            .populate({
-                path: 'projectId',
-                select: 'projectName'
-            })
-            .populate({
-                path: 'quotationFrom.profileId',
-                model: 'User',
-                select: 'companyName'
-            })
-            .populate({
-                path: 'quotationTo.clientId',
-                select: 'clientName'
-            })
+            .populate({ path: 'projectId', select: 'projectName' })
+            .populate({ path: 'quotationFrom.profileId', model: 'User', select: 'companyName' })
+            .populate({ path: 'quotationTo.clientId', select: 'clientName' })
             .sort({ createdAt: -1 });
 
         res.status(200).json(quotations);
@@ -78,23 +72,15 @@ exports.getAllQuotations = async (req, res) => {
     }
 };
 
-// ... getQuotationById function (Remains unchanged and correct)
+/**
+ * GET: Retrieve quotation by ID
+ */
 exports.getQuotationById = async (req, res) => {
     try {
         const quotation = await Quotation.findById(req.params.id)
-            .populate({
-                path: 'projectId',
-                select: 'projectName'
-            })
-            .populate({
-                path: 'quotationFrom.profileId',
-                model: 'User',
-                select: 'companyName'
-            })
-            .populate({
-                path: 'quotationTo.clientId',
-                select: 'clientName'
-            });
+            .populate({ path: 'projectId', select: 'projectName' })
+            .populate({ path: 'quotationFrom.profileId', model: 'User', select: 'companyName' })
+            .populate({ path: 'quotationTo.clientId', select: 'clientName' });
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
@@ -109,57 +95,53 @@ exports.getQuotationById = async (req, res) => {
     }
 };
 
-// ... getProjectMaterialsAndExpenditures function (Remains unchanged and correct, but unused by FE, as FE calls individual APIs)
-exports.getProjectMaterialsAndExpenditures = async (req, res) => {
-    try {
-        const { projectId } = req.params;
-
-        if (!projectId) {
-            return res.status(400).json({ message: 'Project ID is required.' });
-        }
-
-        const materials = await MaterialMapping.find({ projectId: projectId });
-        const expenditures = await ExpenditureMapping.find({ projectId: projectId });
-
-        res.status(200).json({ materials, expenditures });
-    } catch (err) {
-        console.error('Error fetching project data:', err.message);
-        if (err.kind === 'ObjectId') {
-            return res.status(400).json({ message: 'Invalid Project ID format' });
-        }
-        res.status(500).json({ message: 'Server Error fetching project data', error: err.message });
-    }
-};
-
-// ... createQuotation function (Remains unchanged and correct)
+/**
+ * POST: Create a new quotation
+ */
 exports.createQuotation = async (req, res) => {
-    const {
+    let {
         projectId,
         quotationFrom,
         quotationTo,
+        items, 
         quotationDate,
         dueDate,
-        materials,
-        expenditures,
         signedDate,
         termsAndConditions,
         status,
         notes
     } = req.body;
 
-    if (!projectId || !quotationFrom?.profileId || !quotationTo?.clientId) {
-        return res.status(400).json({ message: 'Missing required fields: projectId, quotationFrom.profileId, and quotationTo.clientId are required.' });
+    // Fix for Multer: Parse stringified nested objects and arrays
+    try {
+        if (typeof quotationFrom === 'string') quotationFrom = JSON.parse(quotationFrom);
+        if (typeof quotationTo === 'string') quotationTo = JSON.parse(quotationTo);
+        if (typeof items === 'string') items = JSON.parse(items); // Parse items array
+    } catch (e) {
+        // Delete the uploaded file if JSON parsing fails after upload
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error("Failed to delete orphaned signature file:", err);
+            });
+        }
+        console.error('JSON parsing error in createQuotation:', e.message);
+        return res.status(400).json({ message: 'Invalid JSON format for nested fields (quotationFrom, quotationTo, or items).', error: e.message });
+    }
+
+    if (!projectId || !quotationFrom?.profileId || !quotationTo?.clientId || !items || items.length === 0) {
+        return res.status(400).json({ message: 'Missing required fields: projectId, profileId, clientId, and at least one item are required.' });
     }
 
     try {
+        // Fetch Profile and Client details to populate nested sub-documents
         const userProfile = await Profile.findById(quotationFrom.profileId);
         const clientInfo = await Client.findById(quotationTo.clientId);
 
         if (!userProfile) {
-            return res.status(404).json({ message: 'Profile not found.' });
+            return res.status(404).json({ message: 'Profile (quotationFrom) not found.' });
         }
         if (!clientInfo) {
-            return res.status(404).json({ message: 'Client not found.' });
+            return res.status(404).json({ message: 'Client (quotationTo) not found.' });
         }
 
         const quotationNumber = await generateQuotationNumber();
@@ -167,34 +149,42 @@ exports.createQuotation = async (req, res) => {
         const newQuotation = new Quotation({
             quotationNumber,
             projectId,
+            // Populate quotationFrom fields from Profile data
             quotationFrom: {
                 profileId: userProfile._id,
-                companyName: userProfile.companyName || 'N/A',
-                gst: userProfile.gst,
-                address: userProfile.address,
-                contactNumber: userProfile.contactNumber
+                companyName: userProfile.companyName || quotationFrom.companyName || 'N/A', // Use request body fallback if profile is missing
+                gst: userProfile.gst || quotationFrom.gst,
+                address: userProfile.address || quotationFrom.address,
+                contactNumber: userProfile.contactNumber || quotationFrom.contactNumber
             },
+            // Populate quotationTo fields from Client data
             quotationTo: {
                 clientId: clientInfo._id,
                 clientName: clientInfo.clientName,
-                gst: clientInfo.gst,
-                address: clientInfo.address,
-                phone: clientInfo.phone
+                gst: clientInfo.gst || quotationTo.gst,
+                address: clientInfo.address || quotationTo.address,
+                phone: clientInfo.phone || quotationTo.phone
             },
+            items, // Include the items array from request body
             quotationDate,
             dueDate,
-            materials,
-            expenditures,
             signedDate,
-            signature: req.file ? req.file.path : null,
+            signature: req.file ? req.file.path : null, // Store file path if uploaded
             termsAndConditions,
             status,
             notes
         });
 
+        // The pre('save') hook in the model will automatically calculate all totals.
         const savedQuotation = await newQuotation.save();
         res.status(201).json(savedQuotation);
     } catch (err) {
+        // Delete uploaded file on server error
+        if (req.file) {
+            fs.unlink(req.file.path, (e) => {
+                if (e) console.error("Failed to delete orphaned signature file:", e);
+            });
+        }
         console.error('Error creating quotation:', err.message);
         if (err.code === 11000) {
             return res.status(409).json({ message: 'Duplicate quotation number. Please try again.' });
@@ -203,22 +193,48 @@ exports.createQuotation = async (req, res) => {
     }
 };
 
-// ... updateQuotation function (Remains unchanged and correct)
+/**
+ * PUT: Update an existing quotation
+ */
 exports.updateQuotation = async (req, res) => {
     if (!req.params.id) {
         return res.status(400).json({ message: 'Quotation ID is required in the URL.' });
     }
 
+    const fileToDelete = req.file ? req.file.path : null; // Path of the newly uploaded file if error occurs
+
     try {
         const existingQuotation = await Quotation.findById(req.params.id);
 
         if (!existingQuotation) {
+            // Delete the new file if quotation is not found
+            if (fileToDelete) fs.unlinkSync(fileToDelete);
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
         const updateData = { ...req.body };
 
+        // Fix for Multer: Parse stringified nested objects and the items array
+        try {
+            if (updateData.quotationFrom && typeof updateData.quotationFrom === 'string') {
+                updateData.quotationFrom = JSON.parse(updateData.quotationFrom);
+            }
+            if (updateData.quotationTo && typeof updateData.quotationTo === 'string') {
+                updateData.quotationTo = JSON.parse(updateData.quotationTo);
+            }
+            if (updateData.items && typeof updateData.items === 'string') { 
+                updateData.items = JSON.parse(updateData.items);
+            }
+        } catch (e) {
+            // Delete the new file if JSON parsing fails
+            if (fileToDelete) fs.unlinkSync(fileToDelete);
+            console.error('JSON parsing error in updateQuotation:', e.message);
+            return res.status(400).json({ message: 'Invalid JSON format for nested fields in update (quotationFrom, quotationTo, or items).', error: e.message });
+        }
+
+        // Handle signature file update
         if (req.file) {
+            // Delete old signature file if it exists
             if (existingQuotation.signature && fs.existsSync(existingQuotation.signature)) {
                 fs.unlink(existingQuotation.signature, (err) => {
                     if (err) console.error("Failed to delete old signature file:", err);
@@ -227,40 +243,57 @@ exports.updateQuotation = async (req, res) => {
             updateData.signature = req.file.path;
         }
 
-        if (req.body.quotationFrom?.profileId) {
-            const userProfile = await Profile.findById(req.body.quotationFrom.profileId);
+        // --- Update 'quotationFrom' with Profile data ---
+        if (updateData.quotationFrom?.profileId) {
+            const userProfile = await Profile.findById(updateData.quotationFrom.profileId);
             if (userProfile) {
                 updateData.quotationFrom = {
                     profileId: userProfile._id,
-                    companyName: userProfile.companyName,
-                    gst: userProfile.gst,
-                    address: userProfile.address,
-                    contactNumber: userProfile.contactNumber
+                    companyName: userProfile.companyName || updateData.quotationFrom.companyName,
+                    gst: userProfile.gst || updateData.quotationFrom.gst,
+                    address: userProfile.address || updateData.quotationFrom.address,
+                    contactNumber: userProfile.contactNumber || updateData.quotationFrom.contactNumber
                 };
             }
+        } else if (existingQuotation.quotationFrom.profileId) {
+            // Ensure profileId is maintained even if only other fields are updated
+             updateData.quotationFrom = updateData.quotationFrom || {};
+             updateData.quotationFrom.profileId = existingQuotation.quotationFrom.profileId;
         }
 
-        if (req.body.quotationTo?.clientId) {
-            const clientInfo = await Client.findById(req.body.quotationTo.clientId);
+        // --- Update 'quotationTo' with Client data ---
+        if (updateData.quotationTo?.clientId) {
+            const clientInfo = await Client.findById(updateData.quotationTo.clientId);
             if (clientInfo) {
                 updateData.quotationTo = {
                     clientId: clientInfo._id,
-                    clientName: clientInfo.clientName,
-                    gst: clientInfo.gst,
-                    address: clientInfo.address,
-                    phone: clientInfo.phone
+                    clientName: clientInfo.clientName || updateData.quotationTo.clientName,
+                    gst: clientInfo.gst || updateData.quotationTo.gst,
+                    address: clientInfo.address || updateData.quotationTo.address,
+                    phone: clientInfo.phone || updateData.quotationTo.phone
                 };
             }
+        } else if (existingQuotation.quotationTo.clientId) {
+            // Ensure clientId is maintained even if only other fields are updated
+             updateData.quotationTo = updateData.quotationTo || {};
+             updateData.quotationTo.clientId = existingQuotation.quotationTo.clientId;
         }
+        
+        // Use findByIdAndUpdate to trigger the pre('save') hook (must use save() method after fetch or use findOneAndUpdate/updateMany/etc with middleware option)
+        // Since we are using $set, we should use findByIdAndUpdate with runValidators: true
+        // However, findByIdAndUpdate with $set only partially works for nested schemas and does not trigger the pre('save') correctly on all fields.
+        // The safest method to guarantee the pre('save') hook runs and updates the calculated totals is:
 
-        const updatedQuotation = await Quotation.findByIdAndUpdate(
-            req.params.id,
-            { $set: updateData },
-            { new: true, runValidators: true }
-        );
+        Object.assign(existingQuotation, updateData);
+        
+        // The pre('save') hook will handle recalculation of totals when save() is called.
+        const updatedQuotation = await existingQuotation.save();
 
         res.status(200).json(updatedQuotation);
     } catch (err) {
+        // Delete the new file if server error occurs during update
+        if (fileToDelete) fs.unlinkSync(fileToDelete);
+
         console.error('Error updating quotation:', err.message);
         if (err.kind === 'ObjectId') {
             return res.status(400).json({ message: 'Invalid Quotation ID format' });
@@ -269,19 +302,18 @@ exports.updateQuotation = async (req, res) => {
     }
 };
 
-// ... deleteQuotation function (Remains unchanged and correct)
+/**
+ * DELETE: Delete a quotation
+ */
 exports.deleteQuotation = async (req, res) => {
     try {
-        console.log("Attempting to delete Quotation ID:", req.params.id);
-
-        console.log("User attempting delete:", req.user._id, " Role:", req.user.role);
-
         const quotation = await Quotation.findById(req.params.id);
 
         if (!quotation) {
             return res.status(404).json({ message: 'Quotation not found' });
         }
 
+        // Delete signature file if it exists
         if (quotation.signature) {
             fs.unlink(quotation.signature, (err) => {
                 if (err) {
@@ -289,7 +321,6 @@ exports.deleteQuotation = async (req, res) => {
                 }
             });
         }
-
         
         await Quotation.findByIdAndDelete(req.params.id);
         res.status(200).json({ message: 'Quotation successfully removed' });

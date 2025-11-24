@@ -1,32 +1,42 @@
-// models/Material.js
 const mongoose = require('mongoose');
 
 const MaterialSchema = new mongoose.Schema({
-    categoryName: {
-        type: String,
-        required: [true, 'Category name is required'],
-        trim: true,
-        unique: true // Category name should be unique
-    },
+
+    materialId: { type: String, required: true, unique: true }, // unique: true already handles the index
     materialNames: {
         type: [String], // Array of strings for material names (tags)
         required: [true, 'At least one material name is required'],
         validate: {
-            validator: function(v) {    
+            validator: function (v) {
                 return v && v.length > 0;
             },
             message: 'Material names cannot be empty.'
         }
     },
-    unit: { // புதியது
+    unitofMeasure: {
         type: String,
         required: [true, 'Unit is required'],
         trim: true
     },
-    rate: { // புதியது
+    availableQuantity: {
         type: Number,
-        required: [true, 'Rate is required'],
-        min: [0, 'Rate cannot be negative']
+        required: [true, 'Available quantity is required'],
+        min: [0, 'Available quantity cannot be negative']
+    },
+    reorderedLevel: {
+        type: Number,
+        required: [true, 'Reorder level is required'],
+        min: [20, 'Reorder level cannot be negative']
+    },
+    purchasePrice: {
+        type: Number,
+        required: [true, 'Purchase price is required'],
+    },
+    supplierName: { type: String },
+    status: {
+        type: String,
+        required: true,
+        enum: ['Available', 'Low Stock', 'Out of Stock'] // <--- These are the ONLY accepted values
     },
     createdAt: {
         type: Date,
@@ -37,10 +47,7 @@ const MaterialSchema = new mongoose.Schema({
         default: Date.now
     }
 }, {
-    timestamps: true // Automatically adds createdAt and updatedAt
+    timestamps: true
 });
-
-// Ensure categoryName is unique
-MaterialSchema.index({ categoryName: 1 }, { unique: true });
 
 module.exports = mongoose.model('Material', MaterialSchema);

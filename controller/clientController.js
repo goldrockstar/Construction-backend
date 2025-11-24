@@ -4,12 +4,12 @@ const Project = require('../models/Project');
 
 const createProjectClient = asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const { clientName, phoneNumber, email, address, description } = req.body;
+    const { clientName, phoneNumber, gstNo ,email, address, description } = req.body;
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!clientName || !phoneNumber || !email) {
+    if (!clientName || !phoneNumber  || !gstNo || !email) {
         res.status(400);
-        throw new Error('Client Name, Phone Number, and Email are required.');
+        throw new Error('Client Name, Phone Number, GSTNo , and Email are required.');
     }
 
     const project = await Project.findById(projectId);
@@ -26,6 +26,7 @@ const createProjectClient = asyncHandler(async (req, res) => {
     const newClient = new Client({
         clientName,
         phoneNumber,
+        gstNo,
         email,
         address,
         description,
@@ -44,7 +45,7 @@ const createProjectClient = asyncHandler(async (req, res) => {
 
 const updateProjectClient = asyncHandler(async (req, res) => {
     const { clientId } = req.params;
-    const { clientName, phoneNumber, email, address, description } = req.body;
+    const { clientName, phoneNumber, gstNo , email, address, description } = req.body;
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
     const client = await Client.findById(clientId);
@@ -54,7 +55,7 @@ const updateProjectClient = asyncHandler(async (req, res) => {
         throw new Error('கிளையன்ட் கிடைக்கவில்லை.'); 
     }
 
-    if (!clientName && !phoneNumber && !email && !address && !description && !photo) {
+    if (!clientName && !phoneNumber && !gstNo && !email && !address && !description && !photo) {
         res.status(400);
         throw new Error('At least one field (Client Name, Phone Number, or Email) must be provided for update.');
     }
@@ -62,6 +63,7 @@ const updateProjectClient = asyncHandler(async (req, res) => {
 
     client.clientName = clientName || client.clientName;
     client.phoneNumber = phoneNumber || client.phoneNumber;
+    client.gstNo = gstNo || client.gstNo;
     client.email = email || client.email;
     client.address = address || client.address;
     client.description = description || client.description;

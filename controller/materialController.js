@@ -1,15 +1,16 @@
 const Material = require('../models/Material');
+const asyncHandler = require('express-async-handler');
 
-const getAllMaterials = async (req, res) => {
+const getAllMaterials = asyncHandler(async  (req, res) => {
     try {
-        const materials = await Material.find();
+        const materials = await Material.find().sort({ materialNames: 1 });
         res.json(materials);
     } catch (err) {
         res.status(500).json({ message: err.message });
     }
-};
+});
 
-const getMaterialById = async (req, res) => {
+const getMaterialById = asyncHandler(async (req, res)  => {
     try {
         const material = await Material.findById(req.params.id);
         if(!material) {
@@ -19,63 +20,73 @@ const getMaterialById = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-}
-const createMaterial = async (req, res) => {
-    const { categoryName, materialNames, unit, rate } = req.body; // unit and rate added
+});
+const createMaterial = asyncHandler(async (req, res) => {
+    const { materialId, materialNames, unitofMeasure, availableQuantity, reorderedLevel, purchasePrice, supplierName, status } = req.body; 
 
-    try {
-        // Check if category name already exists
-        const existingMaterial = await Material.findOne({ categoryName: categoryName });
-        if (existingMaterial) {
-            return res.status(400).json({ message: 'This category name already exists.' });
-        }
-
-        const newMaterial = new Material({
-            categoryName,
-            materialNames,
-            unit, // added
-            rate, // added
-            createdAt: new Date(),
-            updatedAt: new Date()
-        });
-
-        const savedMaterial = await newMaterial.save();
-        res.status(201).json(savedMaterial);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+    // Basic Validation
+    if (!materialId || !materialNames || !unitofMeasure || availableQuantity === undefined || purchasePrice === undefined) {
+        res.status(400);
+        throw new Error('Material ID, Name, Unit of Measure, Initial Quantity, and Purchase Price are required.');
     }
-};
 
-
-const updateMaterial = async (req, res) => {
-    const { categoryName, materialNames, unit, rate } = req.body; // unit and rate added
-
-    try {
-        const material = await Material.findById(req.params.id);
-        if (!material) {
-            return res.status(404).json({ message: 'Material not found.' });
-        }
-
-        // Check if category name is being changed to an existing one
-        if (categoryName && categoryName !== material.categoryName) {
-            const existingMaterial = await Material.findOne({ categoryName: categoryName });
-            if (existingMaterial && existingMaterial._id.toString() !== req.params.id) {
-                return res.status(400).json({ message: 'This category name already exists.' });
-            }
-        }
-
-        material.categoryName = categoryName || material.categoryName;
-        material.materialNames = materialNames || material.materialNames;
-        material.unit = unit || material.unit; // added
-        material.rate = rate || material.rate; // added
-        material.updatedAt = new Date();
-
-        const updatedMaterial = await material.save();
-        res.json(updatedMaterial);
-    } catch (err) {
-        res.status(400).json({ message: err.message });
+    // Check if materialId already exists
+    const existingMaterial = await Material.findOne({ materialId: materialId });
+    if (existingMaterial) {
+        res.status(400);
+        throw new Error(`Material ID '${materialId}' already exists.`);
     }
-};
+
+    const newMaterial = new Material({
+        materialId,
+        materialNames,
+        unitofMeasure,
+        // The availableQuantity is set by the user during initial creation/purchase
+        availableQuantity: availableQuantity, 
+        reorderedLevel,
+        purchasePrice,
+        supplierName,
+        status,
+    });
+
+    const savedMaterial = await newMaterial.save();
+    res.status(201).json(savedMaterial);
+});
+
+
+const updateMaterial = asyncHandler(async (req, res) => {
+    const { materialId, materialNames, unitofMeasure, availableQuantity, reorderedLevel, purchasePrice, supplierName, status } = req.body;
+
+    const material = await Material.findById(req.params.id);
+    
+    if (!material) {
+        res.status(404);
+        throw new Error('Material not found.');
+    }
+
+    // Check if materialId is being changed to an existing one
+    if (materialId && materialId !== material.materialId) {
+        const existingMaterial = await Material.findOne({ materialId: materialId });
+        if (existingMaterial && existingMaterial._id.toString() !== req.params.id) {
+            res.status(400);
+            throw new Error('This Material ID already exists.');
+        }
+    }
+
+    // Update fields
+    material.materialId = materialId || material.materialId;
+    material.materialNames = materialNames || material.materialNames;
+    material.unitofMeasure = unitofMeasure || material.unitofMeasure;
+    material.availableQuantity = availableQuantity !== undefined ? availableQuantity : material.availableQuantity; 
+    material.reorderedLevel = reorderedLevel !== undefined ? reorderedLevel : material.reorderedLevel; 
+    material.purchasePrice = purchasePrice !== undefined ? purchasePrice : material.purchasePrice; 
+    material.supplierName = supplierName || material.supplierName;
+    material.status = status || material.status; 
+
+    // Pre-save hook will update 'updatedAt' and 'status'
+    const updatedMaterial = await material.save();
+    res.json(updatedMaterial);
+});
 
 const deleteMaterial = async (req, res) => {
     try {
@@ -88,9 +99,6 @@ const deleteMaterial = async (req, res) => {
         res.status(500).json({ message: err.message });
     }
 };
-
-
-
 
 
 module.exports = {

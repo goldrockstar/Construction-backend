@@ -6,6 +6,10 @@ const AmountTransactionSchema = new mongoose.Schema({
         ref: 'Project',
         required: true,
     },
+    type : {
+        type: String,
+        required: true,
+    },
     transactionDate: {
         type: Date,
         default: Date.now,

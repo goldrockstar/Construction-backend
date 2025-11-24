@@ -33,7 +33,7 @@ const getManpowerById = async (req, res) => {
 };
 
 const createManpower = async (req, res) => {
-    const { name, roleId, roleName, phoneNumber, address, description } = req.body;
+    const { empId,name, roleId, roleName, phoneNumber, address, payRateType, payRate } = req.body;
     const photoPath = req.file ? `/${UPLOAD_FOLDER}/${req.file.filename}` : undefined;
 
     try {
@@ -42,12 +42,14 @@ const createManpower = async (req, res) => {
         }
 
         const newManpower = new Manpower({
+            empId,
             name,
             roleId,
             roleName,
             phoneNumber,
             address,
-            description,
+            payRateType,
+            payRate,
             photo: photoPath
         });
 
@@ -74,7 +76,7 @@ const createManpower = async (req, res) => {
 
 const updateManpower = async (req, res) => {
     const { id } = req.params;
-    const { name, roleId, roleName, phoneNumber, address, description } = req.body;
+    const { empId,name, roleId, roleName, phoneNumber, address, payRateType, payRate } = req.body;
     const newPhotoPath = req.file ? `/${UPLOAD_FOLDER}/${req.file.filename}` : undefined;
 
     try {
@@ -88,12 +90,14 @@ const updateManpower = async (req, res) => {
             return res.status(404).json({ message: 'Manpower entry not found.' });
         }
 
+        manpower.empId = empId !== undefined ? empId : manpower.empId;
         manpower.name = name !== undefined ? name : manpower.name;
         manpower.roleId = roleId !== undefined ? roleId : manpower.roleId;
         manpower.roleName = roleName !== undefined ? roleName : manpower.roleName;
         manpower.phoneNumber = phoneNumber !== undefined ? phoneNumber : manpower.phoneNumber;
         manpower.address = address !== undefined ? address : manpower.address;
-        manpower.description = description !== undefined ? description : manpower.description;
+        manpower.payRateType = payRateType !== undefined ? payRateType : manpower.payRateType;
+        manpower.payRate = payRate !== undefined ? payRate : manpower.payRate;
 
         if (newPhotoPath) {
             if (manpower.photo) {

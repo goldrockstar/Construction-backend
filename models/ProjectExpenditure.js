@@ -1,55 +1,49 @@
 const mongoose = require('mongoose');
 
 const ProjectExpenditureSchema = new mongoose.Schema({
+    
+    manpowerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Manpower',
+        required: [true, 'Manpower ID is required.'],
+    },
     projectId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Project',
         required: [true, 'Project ID is required.'],
     },
-    expenditureType: {
+    employeeName: {
         type: String,
-        enum: ['Salary', 'Other'],
-        required: [true, 'Expenditure Type is required.'],
+        required: [true, 'Employee name is required.'],
     },
-    expenditureName: {
+    designation: {
         type: String,
-        required: function() {
-            // 'expenditureName' is only required if the expenditureType is 'Other'
-            return this.expenditureType === 'Other';
-        }
-    },
-    manpowerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Manpower',
-        required: function() {
-            // 'manpowerId' is only required if the expenditureType is 'Salary'
-            return this.expenditureType === 'Salary';
-        }
-    },
-    manpowerName: {
-        type: String,
-        required: function() {
-            // 'manpowerName' is only required if the expenditureType is 'Salary'
-            return this.expenditureType === 'Salary';
-        }
+        required: [true, 'Designation is required.'],
     },
     fromDate: {
         type: Date,
-        required: [true, 'From Date is required.'],
+        required: [true, 'From date is required.'],
     },
     toDate: {
         type: Date,
-        required: [true, 'To Date is required.'],
+        required: [true, 'To date is required.'],
     },
-    amount: {
-        type: Number,
-        required: [true, 'Amount is required.'],
-        min: [0, 'Amount must be a positive number.']
-    },
-    description: {
+    payType: {
         type: String,
-        default: ''
-    }
+        required: [true, 'Pay type is required.'],
+    },
+    payRate: {
+        type: Number,
+        required: [true, 'Pay rate is required.'],
+    },
+    WorkingDays: {
+        type: Number,
+        required: [true, 'Number of working days is required.'],
+    },
+    totalWages: {
+        type: Number,
+        required: [true, 'Total wages is required.'],
+    },  
 }, { timestamps: true });
 
 module.exports = mongoose.model('ProjectExpenditure', ProjectExpenditureSchema);

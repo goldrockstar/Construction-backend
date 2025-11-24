@@ -1,15 +1,18 @@
 const express = require('express');
+const { 
+    getMonthlyFinancialSummary, 
+    getTopProfitProjects, 
+    getSalaryReport,
+    getManpowerUtilizationReport 
+} = require('../controller/salaryReportController'); // Check this path carefully!
+const { authorize } = require('../middleware/authMiddleware'); // Assuming you have an auth middleware
+
 const router = express.Router();
-const salaryReportController = require('../controller/salaryReportController');
-const { authenticateToken, authorize } = require('../middleware/authMiddleware');
-const auth = authenticateToken;
 
-router.get('/', auth, authorize('admin', 'manager'), salaryReportController.getAllSalaryReports);
-
-router.get('/:id', auth, authorize('admin', 'manager'), salaryReportController.getSalaryReportById);
-
-router.post('/', auth, authorize('admin'), salaryReportController.createSalaryReport);
-
-router.delete('/:id', auth, authorize('admin'), salaryReportController.deleteSalaryReport);
+// All reports typically require authentication and proper role authorization
+router.get('/financial-summary',authorize('admin', 'manager'), getMonthlyFinancialSummary);
+router.get('/top-profit-projects',authorize('admin', 'manager'), getTopProfitProjects);
+router.get('/salary-report',authorize('admin', 'manager'), getSalaryReport);
+router.post('/manpower-utilization',authorize('admin', 'manager'), getManpowerUtilizationReport);
 
 module.exports = router;

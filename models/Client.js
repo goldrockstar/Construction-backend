@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const clientSchema = new mongoose.Schema({
     clientName: { type: String, required: true },
     phoneNumber: { type: String, required: true },
+    gstNo: { type: String },
     email: {
         type: String,
         match: [/.+@.+\..+/, "தகுந்த மின்னஞ்சல் முகவரியை உள்ளிடவும்."],
