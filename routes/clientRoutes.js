@@ -16,18 +16,19 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 const {
-    createProjectClient,
-    getProjectClientInfo,
-    updateProjectClient,
-    deleteProjectClient,
-    getAllClients
+    createClient,
+    getAllClients,
+    updateClient,
+    deleteClient,
+    getClientById
 } = require('../controller/clientController');
 
 router.get('/', authenticateToken, getAllClients);
 
-router.post('/', authenticateToken, upload.single('photo'), createProjectClient);
-router.get('/info', authenticateToken, getProjectClientInfo);
-router.put('/:clientId', authenticateToken, upload.single('photo'), updateProjectClient);
-router.delete('/:clientId', authenticateToken, deleteProjectClient);
+router.post('/', authenticateToken, upload.single('photo'), createClient);
+router.get('/info', authenticateToken, getAllClients);
+router.get('/:clientId', authenticateToken, getClientById);
+router.put('/:clientId', authenticateToken, upload.single('photo'), updateClient);
+router.delete('/:clientId', authenticateToken, deleteClient);
 
 module.exports = router;

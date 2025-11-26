@@ -1,28 +1,23 @@
 const asyncHandler = require('express-async-handler');
 const Client = require('../models/Client');
-const Project = require('../models/Project');
 
-const createProjectClient = asyncHandler(async (req, res) => {
-    const { projectId } = req.params;
-    const { clientName, phoneNumber, gstNo ,email, address, description } = req.body;
+// @desc    Create a new client
+// @route   POST /api/clients
+// @access  Private
+const createClient = asyncHandler(async (req, res) => {
+    // projectId தேவையில்லை, நேரடியாக கிளையன்ட் விவரங்களை மட்டும் எடுக்கிறோம்
+    const { clientName, phoneNumber, gstNo, email, address, description } = req.body;
+    
+    // போட்டோ இருந்தால் அதன் path-ஐ எடுக்கிறோம்
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
-    if (!clientName || !phoneNumber  || !gstNo || !email) {
+    // Schema-வில் required: true உள்ளவற்றுக்கு மட்டும் கட்டாய சரிபார்ப்பு (Validation)
+    if (!clientName || !phoneNumber) {
         res.status(400);
-        throw new Error('Client Name, Phone Number, GSTNo , and Email are required.');
+        throw new Error('Client Name and Phone Number are required.');
     }
 
-    const project = await Project.findById(projectId);
-    if (!project) {
-        res.status(404);
-        throw new Error('திட்டம் கிடைக்கவில்லை.');
-    }
-
-    if (project.client) {
-        res.status(400);
-        throw new Error('இந்த திட்டத்திற்கு ஏற்கனவே ஒரு கிளையன்ட் உள்ளது. தயவுசெய்து புதுப்பித்தல் செயல்பாட்டைப் பயன்படுத்தவும்.'); 
-    }
-
+    // புதிய கிளையன்ட் உருவாக்கம்
     const newClient = new Client({
         clientName,
         phoneNumber,
@@ -31,42 +26,42 @@ const createProjectClient = asyncHandler(async (req, res) => {
         address,
         description,
         photo,
-        projectId: projectId,
-        user: req.user.id,
+        user: req.user.id, // லாகின் செய்த பயனரின் ID
     });
 
     const savedClient = await newClient.save();
-
-    project.client = savedClient._id;
-    await project.save();
-
     res.status(201).json(savedClient);
 });
 
-const updateProjectClient = asyncHandler(async (req, res) => {
-    const { clientId } = req.params;
-    const { clientName, phoneNumber, gstNo , email, address, description } = req.body;
+// @desc    Update existing client
+// @route   PUT /api/clients/:id
+// @access  Private
+const updateClient = asyncHandler(async (req, res) => {
+    const { id } = req.params; // projectId-க்கு பதில் நேரடியாக clientId (id) மட்டும் போதும்
+    const { clientName, phoneNumber, gstNo, email, address, description } = req.body;
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
-    const client = await Client.findById(clientId);
+    const client = await Client.findById(id);
 
     if (!client) {
         res.status(404);
-        throw new Error('கிளையன்ட் கிடைக்கவில்லை.'); 
+        throw new Error('கிளையன்ட் கிடைக்கவில்லை.');
     }
 
-    if (!clientName && !phoneNumber && !gstNo && !email && !address && !description && !photo) {
-        res.status(400);
-        throw new Error('At least one field (Client Name, Phone Number, or Email) must be provided for update.');
-    }
+    // பயனர் அங்கீகாரம் (User Authorization) - தேவைப்பட்டால் இதை அன்கமெண்ட் செய்யவும்
+    // if (client.user.toString() !== req.user.id) {
+    //     res.status(401);
+    //     throw new Error('User not authorized');
+    // }
 
-
+    // விபரங்களை அப்டேட் செய்தல்
     client.clientName = clientName || client.clientName;
     client.phoneNumber = phoneNumber || client.phoneNumber;
     client.gstNo = gstNo || client.gstNo;
     client.email = email || client.email;
     client.address = address || client.address;
     client.description = description || client.description;
+    
     if (photo) {
         client.photo = photo;
     }
@@ -75,54 +70,54 @@ const updateProjectClient = asyncHandler(async (req, res) => {
     res.status(200).json(updatedClient);
 });
 
-const deleteProjectClient = asyncHandler(async (req, res) => {
-    const { projectId, clientId } = req.params;
+// @desc    Delete client
+// @route   DELETE /api/clients/:id
+// @access  Private
+const deleteClient = asyncHandler(async (req, res) => {
+    const { id } = req.params;
 
-    const client = await Client.findById(clientId);
-    const project = await Project.findById(projectId);
+    const client = await Client.findById(id);
 
-    if (!client || !project) {
+    if (!client) {
         res.status(404);
-        throw new Error('கிளையன்ட் அல்லது திட்டம் கிடைக்கவில்லை.'); 
+        throw new Error('கிளையன்ட் கிடைக்கவில்லை.');
     }
 
-    project.client = null;
-    await project.save();
+    // Project-ல் உள்ள குறிப்பை நீக்க வேண்டிய அவசியம் இருந்தால் இங்கே தனியாக எழுதலாம்.
+    // ஆனால் நீங்கள் projectId வேண்டாம் என்று சொன்னதால், கிளையன்டை மட்டும் நீக்குகிறோம்.
 
     await client.deleteOne();
 
-    res.status(200).json({ message: 'திட்டத்திலிருந்து கிளையன்ட் வெற்றிகரமாக நீக்கப்பட்டது.' }); 
+    res.status(200).json({ message: 'கிளையன்ட் வெற்றிகரமாக நீக்கப்பட்டது.' });
 });
 
+// @desc    Get all clients
+// @route   GET /api/clients
+// @access  Private
 const getAllClients = asyncHandler(async (req, res) => {
-    const clients = await Client.find({});
+    // லாகின் செய்த பயனரால் உருவாக்கப்பட்ட கிளையன்ட்களை மட்டும் எடுக்க:
+    const clients = await Client.find({ user: req.user.id }).sort({ createdAt: -1 });
     res.status(200).json(clients);
 });
 
-const getProjectClientInfo = asyncHandler(async (req, res) => {
-    const project = await Project.findById(req.params.projectId).populate('client');
+// @desc    Get single client by ID
+// @route   GET /api/clients/:id
+// @access  Private
+const getClientById = asyncHandler(async (req, res) => {
+    const client = await Client.findById(req.params.id);
 
-    if (!project) {
+    if (!client) {
         res.status(404);
-        throw new Error('Project not found');
+        throw new Error('Client not found');
     }
 
-    if (project.user && project.user.toString() !== req.user.id && req.user.role !== 'admin' && req.user.role !== 'manager') {
-        res.status(401);
-        throw new Error('Not authorized to view this project');
-    }
-
-    if (!project.client) {
-        return res.status(404).json({ message: 'Client information not found for this project' });
-    }
-
-    res.status(200).json(project.client);
+    res.status(200).json(client);
 });
 
 module.exports = {
-    createProjectClient,
-    updateProjectClient,
-    deleteProjectClient,
+    createClient,
+    updateClient,
+    deleteClient,
     getAllClients,
-    getProjectClientInfo 
+    getClientById
 };

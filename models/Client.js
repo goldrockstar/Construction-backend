@@ -11,11 +11,6 @@ const clientSchema = new mongoose.Schema({
     photo: { type: String },
     address: { type: String },
     description: { type: String },
-    projectId: { 
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Project',
-        required: true
-    },
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
