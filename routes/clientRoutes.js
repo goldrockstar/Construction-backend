@@ -23,12 +23,24 @@ const {
     getClientById
 } = require('../controller/clientController');
 
+// Get All Clients
 router.get('/', authenticateToken, getAllClients);
 
+// Create Client
 router.post('/', authenticateToken, upload.single('photo'), createClient);
+
+// Get All Clients Info
 router.get('/info', authenticateToken, getAllClients);
-router.get('/:clientId', authenticateToken, getClientById);
-router.put('/:clientId', authenticateToken, upload.single('photo'), updateClient);
-router.delete('/:clientId', authenticateToken, deleteClient);
+
+// --- கீழே உள்ள வரிகளில் மாற்றம் செய்யப்பட்டுள்ளது ---
+
+// Get Single Client (clientId -> id)
+router.get('/:id', authenticateToken, getClientById);
+
+// Update Client (clientId -> id)
+router.put('/:id', authenticateToken, upload.single('photo'), updateClient);
+
+// Delete Client (clientId -> id)
+router.delete('/:id', authenticateToken, deleteClient);
 
 module.exports = router;
