@@ -70,30 +70,32 @@ const updateClient = asyncHandler(async (req, res) => {
     res.status(200).json(updatedClient);
 });
 
-// @desc    Delete client
-// @route   DELETE /api/clients/:id
-// @access  Private
 const deleteClient = asyncHandler(async (req, res) => {
     const { id } = req.params;
 
+    console.log("================ DELETE REQUEST ================");
+    console.log("1. URL Parameter ID:", id); 
+    console.log("2. Route Params Object:", req.params);
+
+    if (!id) {
+        console.log("ERROR: ID is undefined!");
+        return res.status(400).json({ message: "ID is missing in URL parameters" });
+    } 
     const client = await Client.findById(id);
+
+    console.log("Database Search Result:", client); 
+    console.log("------------------------------------------------");
 
     if (!client) {
         res.status(404);
-        throw new Error('கிளையன்ட் கிடைக்கவில்லை.');
+        throw new Error('கிளையன்ட் கிடைக்கவில்லை (Client Not Found in DB).');
     }
 
-    // Project-ல் உள்ள குறிப்பை நீக்க வேண்டிய அவசியம் இருந்தால் இங்கே தனியாக எழுதலாம்.
-    // ஆனால் நீங்கள் projectId வேண்டாம் என்று சொன்னதால், கிளையன்டை மட்டும் நீக்குகிறோம்.
-
     await client.deleteOne();
-
+    console.log("SUCCESS: Client deleted.");
     res.status(200).json({ message: 'கிளையன்ட் வெற்றிகரமாக நீக்கப்பட்டது.' });
 });
 
-// @desc    Get all clients
-// @route   GET /api/clients
-// @access  Private
 const getAllClients = asyncHandler(async (req, res) => {
     // லாகின் செய்த பயனரால் உருவாக்கப்பட்ட கிளையன்ட்களை மட்டும் எடுக்க:
     const clients = await Client.find({ user: req.user.id }).sort({ createdAt: -1 });
