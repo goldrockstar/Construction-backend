@@ -1,6 +1,6 @@
 const express = require('express');
 const app = express();
-const cors = require('cors'); // CORS middleware-ஐ இறக்குமதி செய்யவும்
+const cors = require('cors');
 const mongoose = require('mongoose');
 const path = require('path');
 const config = require('dotenv').config();
@@ -11,14 +11,19 @@ const UPLOAD_FOLDER = 'uploads';
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-
+// --- CORS Configuration (Updated) ---
 const corsOptions = {
-    origin: 'http://localhost:3000', 
+    origin: [
+        'http://localhost:3000',  // Local Development
+        'https://visionary-rabanadas-6e2194.netlify.app' // Live Frontend (Netlify)
+    ],
+    credentials: true, // Cookies/Tokens அனுப்புவதற்கு இது தேவை
     optionsSuccessStatus: 200 
 };
 
 app.use(cors(corsOptions)); 
 
+// --- Static Files ---
 app.use('/' + UPLOAD_FOLDER, express.static(path.join(__dirname, UPLOAD_FOLDER)));
 
 // --- MongoDB Connection ---
@@ -57,7 +62,10 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/materials', materialRoutes);
 app.use('/api/manpower', manpowerRoutes);
 app.use('/api/projects', projectRoutes);
-app.use('/api/projects', clientRoutes); // இதுதான் புதிய வரி!
+
+// குறிப்பு: நாம் Client-ஐ Project-லிருந்து பிரித்துவிட்டதால், கீழே உள்ள வரியை (Comment) செய்துள்ளேன்.
+// app.use('/api/projects', clientRoutes); 
+
 app.use('/api/clients', clientRoutes);
 app.use('/api/projectMaterialMappings', materialMappingRoutes);
 app.use('/api/transactions', TransactionRoutes);
@@ -89,6 +97,7 @@ app.get('/', (req, res) => {
 });
 
 // --- Start Server ---
-app.listen(5000, () => {
-    console.log(`Server is running on port 5000`);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
 });
