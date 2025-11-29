@@ -7,7 +7,7 @@ const Client = require('../models/Client');
 const createClient = asyncHandler(async (req, res) => {
     // projectId தேவையில்லை, நேரடியாக கிளையன்ட் விவரங்களை மட்டும் எடுக்கிறோம்
     const { clientName, phoneNumber, gstNo, email, address, description } = req.body;
-    
+
     // போட்டோ இருந்தால் அதன் path-ஐ எடுக்கிறோம்
     const photo = req.file ? `/uploads/${req.file.filename}` : null;
 
@@ -61,7 +61,7 @@ const updateClient = asyncHandler(async (req, res) => {
     client.email = email || client.email;
     client.address = address || client.address;
     client.description = description || client.description;
-    
+
     if (photo) {
         client.photo = photo;
     }
@@ -71,29 +71,36 @@ const updateClient = asyncHandler(async (req, res) => {
 });
 
 const deleteClient = asyncHandler(async (req, res) => {
+    console.log("---------------- DELETE DEBUG START ----------------");
+
+    // 1. Route Params என்ன வருகிறது என்று பார்ப்போம்
+    console.log("Full Req Params:", req.params);
+
     const { id } = req.params;
+    console.log("Extracted ID:", id);
 
-    console.log("================ DELETE REQUEST ================");
-    console.log("1. URL Parameter ID:", id); 
-    console.log("2. Route Params Object:", req.params);
-
+    // ID 'undefined' என்று வந்தால், Route ஃபைலில் தவறு உள்ளது என்று அர்த்தம்.
     if (!id) {
-        console.log("ERROR: ID is undefined!");
-        return res.status(400).json({ message: "ID is missing in URL parameters" });
-    } 
-    const client = await Client.findById(id);
-
-    console.log("Database Search Result:", client); 
-    console.log("------------------------------------------------");
-
-    if (!client) {
-        res.status(404);
-        throw new Error('கிளையன்ட் கிடைக்கவில்லை (Client Not Found in DB).');
+        console.log("ERROR: ID is undefined. Check route parameter name.");
+        return res.status(400).json({ message: "Bad Request: ID missing" });
     }
 
+    // 2. Database-ல் தேடுதல்
+    const client = await Client.findById(id);
+
+    if (!client) {
+        console.log("ERROR: Client NOT FOUND in Database for ID:", id);
+        console.log("---------------- DELETE DEBUG END ----------------");
+        // இதுதான் 404 எரரை அனுப்புகிறது
+        return res.status(404).json({ message: 'Client not found in DB' });
+    }
+
+    // 3. அழித்தல்
     await client.deleteOne();
-    console.log("SUCCESS: Client deleted.");
-    res.status(200).json({ message: 'கிளையன்ட் வெற்றிகரமாக நீக்கப்பட்டது.' });
+    console.log("SUCCESS: Client Deleted");
+    console.log("---------------- DELETE DEBUG END ----------------");
+
+    res.status(200).json({ message: 'Deleted Successfully' });
 });
 
 const getAllClients = asyncHandler(async (req, res) => {
