@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: false }));
 const corsOptions = {
     origin: [
         'http://localhost:3000',  
-        'https://visionary-rabanadas-6e2194.netlify.app',
+        'https://resplendent-begonia-393bb1.netlify.app',
     ],
     credentials: true, 
     optionsSuccessStatus: 200 
