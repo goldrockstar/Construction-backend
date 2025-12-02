@@ -15,9 +15,9 @@ app.use(express.urlencoded({ extended: false }));
 const corsOptions = {
     origin: [
         'http://localhost:3000',  
-        // 'https://visionary-rabanadas-6e2194.netlify.app' // Live Frontend (Netlify)
+        'https://visionary-rabanadas-6e2194.netlify.app',
     ],
-    credentials: true, // Cookies/Tokens அனுப்புவதற்கு இது தேவை
+    credentials: true, 
     optionsSuccessStatus: 200 
 };
 
