@@ -13,24 +13,22 @@ app.use(express.urlencoded({ extended: false }));
 
 // --- CORS Configuration (Updated) ---
 const allowedOrigins = [
-  // 1. Production Frontend Domain (Netlify URL) - CRUCIAL FIX
-  'https://resplendent-begonia-393bb1.netlify.app', 
-  // 2. Local Development URL (if you use it)
+  'https://resplendent-begonia-393bb1.netlify.app', // 👈 REQUIRED FIX
   'http://localhost:3000', 
-  'http://localhost:3001',
+  'http://localhost:3001', 
 ];
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Check if the request origin is in our allowed list
+    // Check if the request origin is in our allowed list or if it's a non-browser request (like curl, or Postman)
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'), false);
     }
   },
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Allowed methods
-  credentials: true, // Allow cookies/authorization headers
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE', // Ensure POST is allowed
+  credentials: true, // Important for handling cookies/session if used
 };
 
 app.use(cors(corsOptions));
