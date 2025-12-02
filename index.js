@@ -14,8 +14,8 @@ app.use(express.urlencoded({ extended: false }));
 // --- CORS Configuration (Updated) ---
 const corsOptions = {
     origin: [
-        'http://localhost:3000',  // Local Development
-        'https://visionary-rabanadas-6e2194.netlify.app' // Live Frontend (Netlify)
+        'http://localhost:3000',  
+        // 'https://visionary-rabanadas-6e2194.netlify.app' // Live Frontend (Netlify)
     ],
     credentials: true, // Cookies/Tokens அனுப்புவதற்கு இது தேவை
     optionsSuccessStatus: 200 
