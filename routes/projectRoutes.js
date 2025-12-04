@@ -10,12 +10,15 @@ const {
     getProjectsByStatus,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    getNextProjectId
 } = require('../controller/projectController');
 
 router.route('/')
     .get(authenticateToken, getProjects)
     .post(authenticateToken, createProject);
+
+router.get('/next-id', authenticateToken, getNextProjectId);
 
 router.route('/:id')
     .get(authenticateToken, getProjectById)

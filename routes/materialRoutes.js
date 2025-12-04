@@ -1,17 +1,23 @@
 const express = require('express');
-const materialController = require('../controller/materialController');
-const { authenticateToken, authorize } = require('../middleware/authMiddleware');
-
 const router = express.Router();
+const { 
+    getAllMaterials, 
+    createMaterial, 
+    updateMaterial, 
+    deleteMaterial, 
+    getMaterialById,
+    getNextMaterialId // Import new controller
+} = require('../controller/materialController'); // Path may vary based on your folder structure
+const { authenticateToken } = require('../middleware/authMiddleware');
 
-router.get('/', authenticateToken, authorize('admin', 'manager'), materialController.getAllMaterials);
+router.get('/', authenticateToken, getAllMaterials);
+router.post('/', authenticateToken, createMaterial);
 
-router.get('/:id', authenticateToken, authorize('admin', 'manager'), materialController.getMaterialById);
+// *** முக்கியம்: இதை ID route-க்கு மேலே வைக்கவும் ***
+router.get('/next-id', authenticateToken, getNextMaterialId);
 
-router.post('/', authenticateToken, authorize('admin'), materialController.createMaterial);
-
-router.put('/:id', authenticateToken, authorize('admin'), materialController.updateMaterial);
-
-router.delete('/:id', authenticateToken, authorize('admin'), materialController.deleteMaterial);
+router.get('/:id', authenticateToken, getMaterialById);
+router.put('/:id', authenticateToken, updateMaterial);
+router.delete('/:id', authenticateToken, deleteMaterial);
 
 module.exports = router;

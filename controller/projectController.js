@@ -3,6 +3,32 @@ const asyncHandler = require('express-async-handler');
 const Project = require('../models/Project');
 const Client = require('../models/Client');
 
+const generateProjectId = async () => {
+    const lastProject = await Project.findOne().sort({ createdAt: -1 });
+
+    if (!lastProject || !lastProject.projectId) {
+        return 'PRO-0001';
+    }
+
+    const lastIdString = lastProject.projectId.replace('PRO-', '');
+    const lastIdNumber = parseInt(lastIdString, 10);
+
+    if (isNaN(lastIdNumber)) return 'PRO-0001';
+
+    const nextIdNumber = lastIdNumber + 1;
+    return `PRO-${String(nextIdNumber).padStart(4, '0')}`;
+};
+
+const getNextProjectId = asyncHandler(async(req, res) => {
+    try {
+        const nextId = await generateProjectId();
+        res.status(200).json({ projectId: nextId });
+    } catch (error) {
+        res.status(500).json({ message: 'Error generating project ID', error: error.message });
+    }
+});
+
+
 const getProjects = asyncHandler(async (req, res) => {
     let query = {};
     if (req.user.role === 'admin' || req.user.role === 'manager') {
@@ -62,9 +88,11 @@ const createProject = asyncHandler(async (req, res) => {
             throw new Error('Invalid client ID provided');
         }
     }
+
+    const newProjectId = await generateProjectId();
     
     const project = await Project.create({
-        projectId,
+        projectId: newProjectId,
         projectName,
         projectType,
         clientName,
@@ -140,6 +168,7 @@ const deleteProject = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+    getNextProjectId,
     getProjects,
     getProjectsByStatus,
     getProjectById,

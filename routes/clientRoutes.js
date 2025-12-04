@@ -4,6 +4,7 @@ const multer = require('multer');
 const { authenticateToken } = require('../middleware/authMiddleware');
 const path = require('path');
 
+// Multer Setup
 const UPLOAD_FOLDER = 'uploads';
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -15,32 +16,33 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+// Controller Imports
 const {
     createClient,
     getAllClients,
     updateClient,
     deleteClient,
-    getClientById
+    getClientById,
+    getNextClientId 
 } = require('../controller/clientController');
 
-// Get All Clients
+// --- ROUTES ---
+
+// 1. Get All Clients
 router.get('/', authenticateToken, getAllClients);
 
-// Create Client
+// 2. Create Client
 router.post('/', authenticateToken, upload.single('photo'), createClient);
 
-// Get All Clients Info
+// 3. Get Next Client ID (STATIC route - Must be BEFORE dynamic :id)
+router.get('/next-id', authenticateToken, getNextClientId);
+
+// 4. Get Client Info (STATIC route)
 router.get('/info', authenticateToken, getAllClients);
 
-// --- கீழே உள்ள வரிகளில் மாற்றம் செய்யப்பட்டுள்ளது ---
-
-// Get Single Client (clientId -> id)
+// 5. Dynamic Routes (Using :id) - Must be LAST
 router.get('/:id', authenticateToken, getClientById);
-
-// Update Client (clientId -> id)
 router.put('/:id', authenticateToken, upload.single('photo'), updateClient);
-
-// Delete Client (clientId -> id)
 router.delete('/:id', authenticateToken, deleteClient);
 
 module.exports = router;

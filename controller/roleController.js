@@ -1,5 +1,27 @@
 const Role = require('../models/Role'); 
 
+// Helper: Generate Role ID
+const generateRoleId = async () => {
+    const lastRole = await Role.findOne().sort({createdAt: -1});
+    if(!lastRole || !lastRole.roleId) {
+        return 'R0001';
+    }
+    const lastIdString = lastRole.roleId.replace('R', '');
+    const lastIdNumber = parseInt(lastIdString, 10);
+    const nextIdNumber = lastIdNumber + 1;
+    return `R${String(nextIdNumber).padStart(4, '0')}`;
+};
+
+// New: Get Next Role ID for Frontend
+const getNextRoleId = async (req, res) => {
+    try {
+        const nextId = await generateRoleId();
+        res.json({ roleId: nextId });
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
 const getRoles = async (req, res) => {
     try {
         const roles = await Role.find();
@@ -9,27 +31,24 @@ const getRoles = async (req, res) => {
     }
 };
 
-
 const createRole = async (req, res) => {
     const { name, description, permissions } = req.body; 
-
     if (!name) {
         return res.status(400).json({ message: "Role Name is required." });
     }
-
     try {
         const roleExists = await Role.findOne({ name });
         if (roleExists) {
             return res.status(400).json({ message: "இந்த ரோல் பெயர் ஏற்கனவே உள்ளது." });
         }
-
+        const newRoleId = await generateRoleId();
         const newRole = new Role({
+            roleId: newRoleId,
             name,
             description,
             permissions: permissions || [],
             createdAt: req.body.createdAt || Date.now()
         });
-
         const savedRole = await newRole.save();
         res.status(201).json(savedRole);
     } catch (err) {
@@ -87,6 +106,7 @@ const deleteRole = async (req, res) => {
 };
 
 module.exports = {
+    getNextRoleId, 
     getRoles,
     createRole,
     updateRole,

@@ -21,7 +21,13 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+// 1. General Routes
 router.get('/', authenticateToken, authorize('admin', 'manager'), manpowerController.getManpower);
+
+// 2. Specific Static Routes (MUST be before dynamic :id routes)
+router.get('/next-id', authenticateToken, authorize('admin', 'manager'), manpowerController.getNextManpowerId);
+
+// 3. Dynamic Routes (:id)
 router.get('/:id', authenticateToken, authorize('admin', 'manager'), manpowerController.getManpowerById);
 router.post('/', authenticateToken, authorize('admin'), upload.single('photo'), manpowerController.createManpower);
 router.put('/:id', authenticateToken, authorize('admin'), upload.single('photo'), manpowerController.updateManpower);

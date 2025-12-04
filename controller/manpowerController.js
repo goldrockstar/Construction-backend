@@ -6,6 +6,32 @@ const fs = require('fs');
 const UPLOAD_FOLDER = process.env.UPLOAD_FOLDER || 'uploads';
 const UPLOADS_PATH = path.join(__dirname, '..', UPLOAD_FOLDER);
 
+const generateManpowerId = async () => {
+    const lastManpower = await Manpower.findOne().sort({ createdAt : -1 });
+
+    if (!lastManpower || !lastManpower.empId) {
+        return 'EMP-0001';
+    }
+
+    const lastIdString = lastManpower.empId.replace('EMP-', '');
+    const lastIdNumber = parseInt(lastIdString, 10);
+
+    if (isNaN(lastIdNumber)) return 'EMP-0001';
+
+    const nextIdNumber = lastIdNumber + 1;
+    return `EMP-${String(nextIdNumber).padStart(4, '0')}`;
+};
+
+
+const getNextManpowerId = async (req, res) => {
+    try {
+        const nextId = await generateManpowerId();
+        res.status(200).json({ empId: nextId });
+    } catch (error) {
+        res.status(500).json({ message: 'Error generating manpower ID', error: error.message });
+    }
+};
+
 
 const getManpower = async (req, res) => {
     console.log("Attempting to fetch manpower data...");
@@ -170,5 +196,6 @@ module.exports = {
     getManpowerById,
     createManpower,
     updateManpower,
-    deleteManpower
+    deleteManpower,
+    getNextManpowerId
 };
