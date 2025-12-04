@@ -13,7 +13,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // --- CORS Configuration (Updated) ---
 const allowedOrigins = [
-  'https://biz-master-construction.netlify.app/', // 👈 REQUIRED FIX
+  'https://biz-master-construction.netlify.app', // 👈 REQUIRED FIX
   'http://localhost:3000', 
   'http://localhost:3001', 
 ];
