@@ -1,107 +1,105 @@
-const Material = require('../models/Material');
 const asyncHandler = require('express-async-handler');
+const Material = require('../models/Material');
 
-const getAllMaterials = asyncHandler(async  (req, res) => {
-    try {
-        const materials = await Material.find().sort({ materialNames: 1 });
-        res.json(materials);
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+// --- Helper: Generate Material ID (Format: MAT-0001) ---
+const generateMaterialId = async () => {
+    const lastMaterial = await Material.findOne().sort({ createdAt: -1 });
+
+    if (!lastMaterial || !lastMaterial.materialId) {
+        return 'MAT-0001';
     }
-});
 
-const getMaterialById = asyncHandler(async (req, res)  => {
+    // எண்களை மட்டும் பிரித்து எடுக்கிறோம் (MAT-0005 -> 5)
+    const lastIdString = lastMaterial.materialId.replace(/\D/g, ''); 
+    const lastIdNumber = parseInt(lastIdString, 10);
+    
+    if (isNaN(lastIdNumber)) return 'MAT-0001'; // Fallback
+
+    const nextIdNumber = lastIdNumber + 1;
+    return `MAT-${String(nextIdNumber).padStart(4, '0')}`;
+};
+
+// --- API: Get Next ID for Frontend ---
+const getNextMaterialId = asyncHandler(async (req, res) => {
     try {
-        const material = await Material.findById(req.params.id);
-        if(!material) {
-            return res.status(404).json({ message: 'Material not found' });
-        }
-        res.json(material);
+        const nextId = await generateMaterialId();
+        res.status(200).json({ materialId: nextId });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 });
+
+// @desc    Create new material
 const createMaterial = asyncHandler(async (req, res) => {
-    const { materialId, materialNames, unitofMeasure, availableQuantity, reorderedLevel, purchasePrice, supplierName, status } = req.body; 
+    const { materialNames, unitofMeasure, availableQuantity, reorderedLevel, purchasePrice, supplierName, status } = req.body;
 
     // Basic Validation
-    if (!materialId || !materialNames || !unitofMeasure || availableQuantity === undefined || purchasePrice === undefined) {
+    if (!materialNames || !unitofMeasure || availableQuantity === undefined || purchasePrice === undefined) {
         res.status(400);
-        throw new Error('Material ID, Name, Unit of Measure, Initial Quantity, and Purchase Price are required.');
+        throw new Error('Please fill all required fields');
     }
 
-    // Check if materialId already exists
-    const existingMaterial = await Material.findOne({ materialId: materialId });
-    if (existingMaterial) {
-        res.status(400);
-        throw new Error(`Material ID '${materialId}' already exists.`);
-    }
+    // Generate ID Automatically
+    const newMaterialId = await generateMaterialId();
 
     const newMaterial = new Material({
-        materialId,
+        materialId: newMaterialId, // Auto-generated
         materialNames,
         unitofMeasure,
-        // The availableQuantity is set by the user during initial creation/purchase
-        availableQuantity: availableQuantity, 
+        availableQuantity, 
         reorderedLevel,
         purchasePrice,
         supplierName,
-        status,
+        status: status || 'Available',
     });
 
     const savedMaterial = await newMaterial.save();
     res.status(201).json(savedMaterial);
 });
 
+// ... (Update, Delete, Get All, Get By ID ஆகியவை பழையபடியே இருக்கட்டும்) ...
+// மற்ற கன்ட்ரோலர்களை (getAllMaterials, getMaterialById, etc.) மாற்ற வேண்டாம்.
+
+const getAllMaterials = asyncHandler(async (req, res) => {
+    const materials = await Material.find().sort({ materialNames: 1 });
+    res.json(materials);
+});
+
+const getMaterialById = asyncHandler(async (req, res) => {
+    const material = await Material.findById(req.params.id);
+    if(!material) {
+        res.status(404);
+        throw new Error('Material not found');
+    }
+    res.json(material);
+});
 
 const updateMaterial = asyncHandler(async (req, res) => {
-    const { materialId, materialNames, unitofMeasure, availableQuantity, reorderedLevel, purchasePrice, supplierName, status } = req.body;
-
     const material = await Material.findById(req.params.id);
-    
     if (!material) {
         res.status(404);
         throw new Error('Material not found.');
     }
-
-    // Check if materialId is being changed to an existing one
-    if (materialId && materialId !== material.materialId) {
-        const existingMaterial = await Material.findOne({ materialId: materialId });
-        if (existingMaterial && existingMaterial._id.toString() !== req.params.id) {
-            res.status(400);
-            throw new Error('This Material ID already exists.');
-        }
-    }
-
-    // Update fields
-    material.materialId = materialId || material.materialId;
-    material.materialNames = materialNames || material.materialNames;
-    material.unitofMeasure = unitofMeasure || material.unitofMeasure;
-    material.availableQuantity = availableQuantity !== undefined ? availableQuantity : material.availableQuantity; 
-    material.reorderedLevel = reorderedLevel !== undefined ? reorderedLevel : material.reorderedLevel; 
-    material.purchasePrice = purchasePrice !== undefined ? purchasePrice : material.purchasePrice; 
-    material.supplierName = supplierName || material.supplierName;
-    material.status = status || material.status; 
-
-    // Pre-save hook will update 'updatedAt' and 'status'
+    
+    // Update fields directly from body
+    Object.assign(material, req.body);
+    
     const updatedMaterial = await material.save();
     res.json(updatedMaterial);
 });
 
-const deleteMaterial = async (req, res) => {
-    try {
-        const result = await Material.deleteOne({ _id: req.params.id });
-        if (result.deletedCount === 0) {
-            return res.status(404).json({ message: 'Material not found.' });
-        }
-        res.json({ message: 'Material deleted successfully.' });
-    } catch (err) {
-        res.status(500).json({ message: err.message });
+const deleteMaterial = asyncHandler(async (req, res) => {
+    const material = await Material.findById(req.params.id);
+    if (!material) {
+        res.status(404);
+        throw new Error('Material not found.');
     }
-};
-
+    await material.deleteOne();
+    res.json({ message: 'Material deleted successfully.' });
+});
 
 module.exports = {
+    getNextMaterialId, // Export this
     getAllMaterials,
     getMaterialById,
     createMaterial,
